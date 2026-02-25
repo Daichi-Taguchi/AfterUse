@@ -1,0 +1,9 @@
+node_modules
+.expo
+.expo-shared
+dist
+*.log
+.env
+google-services.json
+GoogleService-Info.plist
+.firebase
