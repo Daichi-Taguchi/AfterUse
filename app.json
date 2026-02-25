@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "AfterUse",
+    "slug": "afteruse",
+    "version": "1.0.0",
+    "experiments": {
+      "baseUrl": "/AfterUse"
+    },
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#2E7D32"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.afteruse.mvp"
+    },
+    "plugins": [
+      "expo-font"
+    ]
+  }
+}

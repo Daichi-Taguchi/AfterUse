@@ -1,0 +1,242 @@
+{UTF-8}
+
+********************************************************
+    RiverGuard Impact Model
+    Bandung Waste Management System Dynamics
+********************************************************
+
+Population = 8.05e6
+    ~ people
+    ~ Greater Bandung population
+    |
+
+Average Household Size = 3.8
+    ~ people/household
+    |
+
+Intervention Switch = 1
+    ~ Dmnl
+    ~ 1: RiverGuard active, 0: no intervention
+    |
+
+App Users = INTEG(
+    User Adoption Rate - User Churn Rate,
+    0)
+    ~ people
+    ~ Cumulative app users
+    |
+
+Participating Households = App Users / Average Household Size
+    ~ households
+    |
+
+User Adoption Rate =
+    (Population - App Users) * Adoption Fraction * Word of Mouth Effect * Intervention Switch
+    ~ people/Month
+    |
+
+User Churn Rate = App Users * Churn Fraction
+    ~ people/Month
+    |
+
+Adoption Fraction = WITH LOOKUP (
+    Time,
+    ([(0,0)-(60,0.1)],(0,0.005),(6,0.01),(12,0.02),(24,0.04),(36,0.06),(60,0.08)))
+    ~ Dmnl/Month
+    |
+
+Churn Fraction = 0.05
+    ~ 1/Month
+    |
+
+Word of Mouth Effect = 1 + (App Users / Population) * Viral Coefficient
+    ~ Dmnl
+    |
+
+Viral Coefficient = 0.5
+    ~ Dmnl
+    |
+
+Waste Per Capita Daily = 0.7 / 1000
+    ~ tons/person/day
+    |
+
+Waste Generation Rate = Population * Waste Per Capita Daily * 30
+    ~ tons/Month
+    |
+
+Cumulative Waste Generated = INTEG(
+    Waste Generation Rate,
+    0)
+    ~ tons
+    |
+
+Baseline Collection Rate = 0.39
+    ~ Dmnl
+    |
+
+Max Collection Improvement = 0.30
+    ~ Dmnl
+    |
+
+App Impact on Collection = (App Users / Population) * Max Collection Improvement * Intervention Switch
+    ~ Dmnl
+    |
+
+Total Collection Rate = MIN(Baseline Collection Rate + App Impact on Collection, 0.95)
+    ~ Dmnl
+    |
+
+Waste Collection Rate = Waste Generation Rate * Total Collection Rate
+    ~ tons/Month
+    |
+
+Baseline Recycling Rate = 0.10
+    ~ Dmnl
+    |
+
+App Recycling Boost = (App Users / Population) * 0.40 * Intervention Switch
+    ~ Dmnl
+    |
+
+Recycling Efficiency = MIN(Baseline Recycling Rate + App Recycling Boost, 0.70)
+    ~ Dmnl
+    ~ Cap at 70% recycling efficiency
+    |
+
+Waste Recycling Rate = Waste Collection Rate * Recycling Efficiency
+    ~ tons/Month
+    |
+
+Recycled Waste Cumulative = INTEG(
+    Waste Recycling Rate,
+    0)
+    ~ tons
+    |
+
+Uncollected Waste Stock = INTEG(
+    Waste to River Rate - Informal Recovery Rate,
+    1e5)
+    ~ tons
+    |
+
+Informal Recovery Rate = Uncollected Waste Stock * 0.01
+    ~ tons/Month
+    |
+
+Waste to River Rate = Waste Generation Rate * (1 - Total Collection Rate)
+    ~ tons/Month
+    |
+
+Pollution Factor = 100
+    ~ pollution units/ton
+    |
+
+River Pollution Level = INTEG(
+    River Degradation Rate - River Cleanup Rate,
+    1e6)
+    ~ pollution units
+    |
+
+River Degradation Rate = Waste to River Rate * Pollution Factor
+    ~ pollution units/Month
+    |
+
+Baseline Cleanup Efforts = 5000
+    ~ pollution units/Month
+    |
+
+Cleanup per Household = 2
+    ~ pollution units/household/Month
+    |
+
+App Driven Cleanup = Participating Households * Cleanup per Household * Intervention Switch
+    ~ pollution units/Month
+    |
+
+River Cleanup Rate = Baseline Cleanup Efforts + App Driven Cleanup
+    ~ pollution units/Month
+    |
+
+Average Price Per Ton = 5e6
+    ~ IDR/ton
+    ~ Weighted average recycling price
+    |
+
+Income Generation Rate = Waste Recycling Rate * Average Price Per Ton
+    ~ IDR/Month
+    |
+
+Income Withdrawal Rate = Income Generation Rate * 0.80
+    ~ IDR/Month
+    ~ 80% withdrawn monthly
+    |
+
+Community Income from Recycling = INTEG(
+    Income Generation Rate - Income Withdrawal Rate,
+    0)
+    ~ IDR
+    |
+
+Fixed Costs = 5e6
+    ~ IDR/Month
+    |
+
+Variable Cost Per Ton = 1.5e6
+    ~ IDR/ton
+    |
+
+Operating Costs = Fixed Costs + Waste Collection Rate * Variable Cost Per Ton
+    ~ IDR/Month
+    |
+
+Net Monthly Profit = Income Generation Rate - Operating Costs
+    ~ IDR/Month
+    |
+
+Environmental Awareness Level = INTEG(
+    Awareness Increase Rate - Awareness Decay Rate,
+    0.30)
+    ~ Dmnl
+    |
+
+Awareness Growth Factor = 0.05
+    ~ 1/Month
+    |
+
+Awareness Increase Rate = ((App Users / Population) * Awareness Growth Factor + Waste to River Rate / 2e5 * 0.005)
+    ~ 1/Month
+    |
+
+Awareness Decay Rate = Environmental Awareness Level * 0.02
+    ~ 1/Month
+    ~ 2% monthly decay without reinforcement
+    |
+
+CO2 Factor Per Ton = 2.0
+    ~ tons CO2/ton waste
+    |
+
+CO2 Reduction = Recycled Waste Cumulative * CO2 Factor Per Ton
+    ~ tons CO2
+    |
+
+********************************************************
+    Control Variables
+********************************************************
+
+FINAL TIME = 60
+    ~ Month
+    |
+
+INITIAL TIME = 0
+    ~ Month
+    |
+
+TIME STEP = 0.0625
+    ~ Month
+    |
+
+SAVEPER = 1
+    ~ Month
+    |
