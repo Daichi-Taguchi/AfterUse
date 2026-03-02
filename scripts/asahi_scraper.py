@@ -87,17 +87,44 @@ def wait_for_login(driver: uc.Chrome) -> None:
     print(f"Please log in manually in the browser window.")
     print(f"Waiting up to {LOGIN_TIMEOUT}s for login to complete …\n")
 
+    _start = time.time()
+    _last_print = [_start]  # mutable cell so inner function can update it
+
     def logged_in(d: uc.Chrome) -> bool:
-        # Primary signal: search input is present and visible
         try:
-            el = d.find_element(By.ID, "xKeyword")
-            if el.is_displayed():
-                return True
+            # Primary: #xKeyword exists anywhere in the DOM.
+            # Do NOT use is_displayed() – the element can be in the DOM but
+            # considered "not visible" by Selenium when the login overlay is
+            # still fading out, causing a permanent False even after login.
+            d.find_element(By.ID, "xKeyword")
+            return True
         except NoSuchElementException:
             pass
-        # Fallback: URL changed from starting URL (post-login redirect)
-        cur = d.current_url.rstrip("/")
-        return cur != initial_url and "xsearch.asahi.com" in cur
+        except Exception:
+            # StaleElementReferenceException, WebDriverException, etc.
+            # must not escape – WebDriverWait would re-raise them as
+            # TimeoutException with a confusing message.
+            pass
+
+        try:
+            # Fallback: URL moved away from the pre-login page.
+            cur = d.current_url.rstrip("/")
+            if cur != initial_url and "xsearch.asahi.com" in cur:
+                return True
+        except Exception:
+            pass
+
+        # Periodic heartbeat so the user can see the script is still alive.
+        now = time.time()
+        if now - _last_print[0] >= 15:
+            try:
+                elapsed = int(now - _start)
+                print(f"    [waiting] {elapsed}s elapsed … URL={d.current_url}")
+            except Exception:
+                pass
+            _last_print[0] = now
+
+        return False
 
     WebDriverWait(driver, LOGIN_TIMEOUT, poll_frequency=2).until(logged_in)
     print(f"\nLogin confirmed. Current URL: {driver.current_url}")
